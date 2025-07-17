@@ -1,4 +1,4 @@
-from tkinter import Tk,Listbox,PhotoImage,Frame,Button,Menu,filedialog,Label,Scrollbar,Listbox
+from tkinter import Tk,Listbox,PhotoImage,Frame,Button,Menu,filedialog,Label,Scrollbar,Listbox,messagebox
 import pygame
 from tkinter import ttk
 import os
@@ -19,37 +19,57 @@ songs = []
 current_song = " "
 paused = False
 
-
+def load_single_music():
+    global current_song
+    file_paths = filedialog.askopenfilenames(filetypes=[("MP3 Files","*.mp3")])
+    if not file_paths:
+        messagebox.showwarning("No MP3 Found","No mp3 files are selected")
+        return
+    songs.clear()
+    songlist.delete(0,"end")
+    for file_path in file_paths:
+            song = os.path.basename(file_path)
+            songs.append(file_path)
+            songlist.insert("end",os.path.basename(file_path))
+        
+    songlist.selection_set(0)
+    current_song = songs[0]
 
 def load_music():
     global current_song
-    root.directory = filedialog.askdirectory()
-
-    for song in os.listdir(root.directory):
-        name, ext = os.path.splitext(song)
-        if ext == '.mp3':
-            songs.append(song)
-
-    for song in songs:
-        songlist.insert("end",song)
-
+    directory = filedialog.askdirectory()
+    if not directory:
+        return
+    songs.clear()
+    songlist.delete(0,"end")
+    found = False
+    for song in os.listdir(directory):
+            name, ext = os.path.splitext(song)
+            if ext == '.mp3':
+                full_path = os.path.join(directory,song)
+                songs.append(full_path)
+                songlist.insert("end",song)
+                found = True
+            if not found:
+                messagebox.showwarning("No MP3 Found","No mp3 files found in the selected folder")
     songlist.selection_set(0)
-    current_song = songs[songlist.curselection()[0]]
+    current_song = songs[0]
+
 song_label = Label(root,text="No Song Playing",font=("Arial",14),fg="orange")
 song_label.pack(pady=5)
 
 def play_music():
     global current_song,paused
     if not paused:
-        pygame.mixer.music.load(os.path.join(root.directory,current_song))
+        pygame.mixer.music.load(current_song)
         pygame.mixer.music.play()
         song_label.config(text=f"Playing : {current_song}")
-        root.title(f"{current_song}")
+        root.title(f"{os.path.basename(current_song)}")
     else:
         pygame.mixer.music.unpause()
         paused = False
         song_label.config(text=f"Playing : {current_song}")
-        root.title(f"{current_song}")
+        root.title(f"{os.path.basename(current_song)}")
 
 def play_pause():
     global paused
@@ -59,32 +79,37 @@ def play_pause():
 def next_play():
     global current_song,paused
     try:
-        songlist.selection_clear(0,"end")
-        songlist.selection_set(songs.index(current_song)+1)
-        current_song = songs[songlist.curselection()[0]]
-        play_music()
+        idx = songs.index(current_song)
+        if idx < len(songs) - 1:
+            songlist.selection_clear(0,"end")
+            songlist.selection_set(idx + 1)
+            current_song = songs[idx+1]
+            play_music()
     except:
         pass
 
 def pre_play():
     global current_song,paused
     try:
-        songlist.selection_clear(0,"end")
-        songlist.selection_set(songs.index(current_song)-1)
-        current_song = songs[songlist.curselection()[0]]
-        play_music()
+        idx = songs.index(current_song)
+        if idx > 0:
+            songlist.selection_clear(0,"end")
+            songlist.selection_set(idx - 1)
+            current_song = songs[idx-1]
+            play_music()
     except:
         pass
 
 
 
 organize_menu = Menu(menuBar,tearoff=False)
+organize_menu.add_command(label="Add mp3",command=load_single_music)
 organize_menu.add_command(label="Select Folder",command=load_music)
 menuBar.add_cascade(label="Organize",menu=organize_menu)
 
 
 
-play_btn_image  = PhotoImage(file='play.png')
+play_btn_image  = PhotoImage(file='play.gif')
 pause_btn_image  = PhotoImage(file='pause.png')
 nex_btn_image  = PhotoImage(file='next.png')
 pre_btn_image  = PhotoImage(file='previous.png')
